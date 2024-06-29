@@ -1,12 +1,4 @@
-#
-# WARNING: Make sure to use the docker-compose.yml of the current release:
-#
-# https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
-#
-# The compose file on main may not be compatible with the latest release.
-#
-
-name: immich
+version: "3"
 
 services:
   immich-server:
@@ -65,42 +57,35 @@ services:
       start_period: 5m
     command: ["postgres", "-c" ,"shared_preload_libraries=vectors.so", "-c", 'search_path="$$user", public, vectors', "-c", "logging_collector=on", "-c", "max_wal_size=2GB", "-c", "shared_buffers=512MB", "-c", "wal_compression=on"]
     restart: always
-  nginx-proxy:
-    image: jwilder/nginx-proxy
-    container_name: nginx-proxy
+  nginx:
+    container_name: "nginx_server"
+    build:
+      context: ./config
     ports:
-      - "80:80"
-      - "443:443"
+      - 80:80
+      - 443:443
     volumes:
-      - conf:/etc/nginx/conf.d
-      - vhost:/etc/nginx/vhost.d
-      - dhparam:/etc/nginx/dhparam
-      - certs:/etc/nginx/certs:ro
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - /usr/share/nginx/html
+      - ./config:/config
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /tmp/acme-challenge:/tmp/acme-challenge
     networks:
-      - proxy
+      - app
     restart: always
 
   letsencrypt:
-    image: nginxproxy/acme-companion
-    container_name: nginx-proxy-le
-    volumes_from:
-      - nginx-proxy
+    container_name: "certbot"
+    image: certbot/certbot
+    command: sh -c "certbot certonly --webroot -w /tmp/acme-challenge/ -d oscargoodboy.ddns.net --text --agree-tos --email johnnyos1304@gmail.com --rsa-key-size 4096 --verbose --keep-until-expiring --preferred-challenges=http"
+    entrypoint: ""
     volumes:
-      - certs:/etc/nginx/certs:rw
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: always
+      - "/etc/letsencrypt:/etc/letsencrypt"
+      - "/tmp/acme-challenge:/tmp/acme-challenge"
+    environment:
+      - TERM=xterm
 
 volumes:
-  conf:
-  vhost:
-  dhparam:
-  certs:
-  model-cache:
+  model-cache:    
 
 networks:
-  proxy:
-    external: true
-    name: nginx-proxy
-  
+  app:
+    driver: bridge
