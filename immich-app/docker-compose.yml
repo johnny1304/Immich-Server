@@ -49,11 +49,10 @@ services:
       POSTGRES_DB: ${DB_DATABASE_NAME}
       POSTGRES_INITDB_ARGS: '--data-checksums'
     volumes:
-      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data   
     healthcheck:
       test: pg_isready --dbname='${DB_DATABASE_NAME}' || exit 1; Chksum="$$(psql --dbname='${DB_DATABASE_NAME}' --username='${DB_USERNAME}' --tuples-only --no-align --command='SELECT COALESCE(SUM(checksum_failures), 0) FROM pg_stat_database')"; echo "checksum failure count is $$Chksum"; [ "$$Chksum" = '0' ] || exit 1
       interval: 5m
-      start_interval: 30s
       start_period: 5m
     command: ["postgres", "-c" ,"shared_preload_libraries=vectors.so", "-c", 'search_path="$$user", public, vectors', "-c", "logging_collector=on", "-c", "max_wal_size=2GB", "-c", "shared_buffers=512MB", "-c", "wal_compression=on"]
     restart: always
@@ -66,25 +65,25 @@ services:
       - 443:443
     volumes:
       - ./config:/config
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /etc/oscargoodboy.com:/etc/oscargoodboy.com:ro
       - /tmp/acme-challenge:/tmp/acme-challenge
     networks:
       - app
     restart: always
 
-  letsencrypt:
-    container_name: "certbot"
-    image: certbot/certbot
-    command: sh -c "certbot certonly --webroot -w /tmp/acme-challenge/ -d oscargoodboy.ddns.net --text --agree-tos --email johnnyos1304@gmail.com --rsa-key-size 4096 --verbose --keep-until-expiring --preferred-challenges=http"
-    entrypoint: ""
-    volumes:
-      - "/etc/letsencrypt:/etc/letsencrypt"
-      - "/tmp/acme-challenge:/tmp/acme-challenge"
-    environment:
-      - TERM=xterm
+      # letsencrypt:
+    # container_name: "certbot"
+      # image: certbot/certbot
+      #    command: sh -c "certbot certonly --webroot -w /tmp/acme-challenge/ -d oscargoodboy2.ddns.net --text --agree-tos --email headsup98@gmail.com --rsa-key-size 4096 --verbose --keep-until-expiring --preferred-challenges=http"
+      #entrypoint: ""
+      #volumes:
+      # - "/etc/letsencrypt:/etc/letsencrypt"
+        #      - "/tmp/acme-challenge:/tmp/acme-challenge"
+        #environment:
+      #      - TERM=xterm
 
 volumes:
-  model-cache:    
+  model-cache:
 
 networks:
   app:
